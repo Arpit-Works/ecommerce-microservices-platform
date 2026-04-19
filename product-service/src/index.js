@@ -4,6 +4,7 @@ import express from "express";
 const app = express();
 const SERVICE_NAME = "product-service";
 const PORT = process.env.PRODUCT_SERVICE_PORT || 5002;
+import connectDB from "./config/db.js";
 
 app.use(express.json());
 
@@ -16,9 +17,11 @@ app.get("/health", (req, res) => {
 });
 
 const start = async () => {
+
+  await connectDB();
   try {
     const { default: productRoutes } = await import("./routes/product.routes.js");
-    app.use("/api/products", productRoutes);
+    app.use("/products", productRoutes);
   } catch (error) {
     console.error(`[${SERVICE_NAME}] Route mount failed: ${error.message}`);
   }
