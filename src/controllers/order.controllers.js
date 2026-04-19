@@ -19,6 +19,12 @@ export const createOrder = async (req, res) => {
             const productMap = new Map( products.map(p => [p._id.toString(), p]) );
             const product = products.find(p => p._id.toString() === item.product.toString());
             if (!product) throw new Error(`Product not found: ${item.product}`);
+
+            // Check stock availability
+            if (product.stock_quantity < item.quantity) {
+                throw new Error(`Insufficient stock for product: ${product.name}`);
+            }
+
             return {
                 productId: item.product,
                 quantity: item.quantity,
@@ -38,19 +44,39 @@ export const createOrder = async (req, res) => {
         res.status(201).json({ message: 'Order created successfully', order });
 
     }catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+       res.status(500).json({ message: error.message });
     }
 }
 
 
 
+
+
+export const getOrderById = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // ✅ Ownership check
+        if (order.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        res.status(200).json({ order });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
 export const getUserOrders = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.userId;;
         const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
         res.status(200).json({ orders });
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+       res.status(500).json({ message: error.message });
     }
 }
 
